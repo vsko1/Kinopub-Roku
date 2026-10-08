@@ -44,23 +44,29 @@ grep -q "sub onPlayerNextPlaybackRequested" components/AppScene.brs
 grep -q "sub onVideoDetailNextPlayback" components/AppScene.brs
 grep -q "m.playerScreen.nextPlayback = nextPlayback" components/AppScene.brs
 
-# Local setting defaults to the existing behavior and persists both values.
-grep -q 'loadNextEpisodePromptEnabled: appSettingsLoadNextEpisodePromptEnabled' source/services/AppSettingsStore.brs
-grep -q 'saveNextEpisodePromptEnabled: appSettingsSaveNextEpisodePromptEnabled' source/services/AppSettingsStore.brs
-grep -A 4 'function appSettingsLoadNextEpisodePromptEnabled' source/services/AppSettingsStore.brs | grep -q 'then return true'
-grep -q 'section.Write("nextEpisodePromptEnabled", text)' source/services/AppSettingsStore.brs
+# The mode defaults to the original early prompt and migrates the old setting.
+grep -q 'loadNextEpisodeMode: appSettingsLoadNextEpisodeMode' source/services/AppSettingsStore.brs
+grep -q 'saveNextEpisodeMode: appSettingsSaveNextEpisodeMode' source/services/AppSettingsStore.brs
+grep -q 'section.Read("nextEpisodePromptEnabled") = "0" then return "afterEnd"' source/services/AppSettingsStore.brs
+grep -q 'return "earlyPrompt"' source/services/AppSettingsStore.brs
+grep -q 'section.Write("nextEpisodeMode", mode)' source/services/AppSettingsStore.brs
 grep -q 'section.Flush()' source/services/AppSettingsStore.brs
 
-# Settings exposes and saves the toggle; the player refreshes it on playback.
-grep -q 'Предлагать следующую серию:' components/screens/SettingsScreen.brs
-grep -q 'm.appSettingsStore.saveNextEpisodePromptEnabled(m.nextEpisodePromptEnabled)' components/screens/SettingsScreen.brs
+# Settings exposes both modes; the player refreshes the choice on playback.
+grep -q 'Следующая серия: ' components/screens/SettingsScreen.brs
+grep -q 'Окно заранее' components/screens/SettingsScreen.brs
+grep -q 'Автоматически в конце' components/screens/SettingsScreen.brs
+grep -q 'm.appSettingsStore.saveNextEpisodeMode(m.nextEpisodeMode)' components/screens/SettingsScreen.brs
 grep -q 'pkg:/source/services/AppSettingsStore.brs' components/screens/PlayerScreen.xml
-grep -q 'm.nextEpisodePromptEnabled = m.appSettingsStore.loadNextEpisodePromptEnabled()' components/screens/PlayerScreen.brs
+grep -q 'm.nextEpisodeMode = m.appSettingsStore.loadNextEpisodeMode()' components/screens/PlayerScreen.brs
 
-# Threshold and finished use the guarded auto path; manual paths remain direct.
-grep -A 4 'sub maybeRequestNextEpisodePrompt(reason as String)' components/screens/PlayerScreen.brs | grep -q 'if m.nextEpisodePromptEnabled <> true then return'
+# The early threshold is skipped in afterEnd mode; finished switches directly.
+grep -A 4 'sub maybeRequestNextEpisodePrompt(reason as String)' components/screens/PlayerScreen.brs | grep -q 'if reason = "threshold" and m.nextEpisodeMode <> "earlyPrompt" then return'
 grep -q 'maybeRequestNextEpisodePrompt("threshold")' components/screens/PlayerScreen.brs
 grep -q 'maybeRequestNextEpisodePrompt("finished")' components/screens/PlayerScreen.brs
+grep -q 'response.reason = "finished" and m.nextEpisodeMode = "afterEnd"' components/screens/PlayerScreen.brs
+grep -A 3 'response.reason = "finished" and m.nextEpisodeMode = "afterEnd"' components/screens/PlayerScreen.brs | grep -q 'startNextPlayback(response.playback)'
+# Explicit next-episode controls still take their existing direct paths.
 grep -q 'reason: "manualNext"' components/screens/PlayerScreen.brs
 grep -q 'reason: "seasonCarousel"' components/screens/PlayerScreen.brs
 grep -q 'm.nextEpisodeCountdownTimer.control = "start"' components/screens/PlayerScreen.brs

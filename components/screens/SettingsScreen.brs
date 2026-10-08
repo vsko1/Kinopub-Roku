@@ -46,7 +46,7 @@ sub init()
 
     m.appSettingsStore = AppSettingsStore()
     m.hideAnime = m.appSettingsStore.loadHideAnime()
-    m.nextEpisodePromptEnabled = m.appSettingsStore.loadNextEpisodePromptEnabled()
+    m.nextEpisodeMode = m.appSettingsStore.loadNextEpisodeMode()
 
     m.activeSettingId = ""
     m.settingsRows = []
@@ -275,15 +275,15 @@ function settingsScreenBuildRows() as Object
     hideAnimeText = "Нет"
     if m.hideAnime = true then hideAnimeText = "Да"
 
-    nextEpisodePromptText = "Нет"
-    if m.nextEpisodePromptEnabled = true then nextEpisodePromptText = "Да"
+    nextEpisodeModeText = "Окно заранее"
+    if m.nextEpisodeMode = "afterEnd" then nextEpisodeModeText = "Автоматически в конце"
 
     return [
         { id: "support4k", label: "Поддержка 4K: " + fourKText }
         { id: "serverLocation", label: "Сервер: " + settingsScreenTitleForListValue(m.serverLocationOptions, m.serverLocationSelectedId) }
         { id: "streamingType", label: "Тип трансляции: " + settingsScreenTitleForListValue(m.streamingTypeOptions, m.streamingTypeSelectedId) }
         { id: "hideAnime", label: "Скрывать Аниме: " + hideAnimeText }
-        { id: "nextEpisodePromptEnabled", label: "Предлагать следующую серию: " + nextEpisodePromptText }
+        { id: "nextEpisodeMode", label: "Следующая серия: " + nextEpisodeModeText }
         { id: "signOut", label: "Выйти из аккаунта" }
     ]
 end function
@@ -357,8 +357,8 @@ sub settingsScreenActivateRow()
         settingsScreenToggleSupport4k()
     else if row.id = "hideAnime"
         settingsScreenToggleHideAnime()
-    else if row.id = "nextEpisodePromptEnabled"
-        settingsScreenToggleNextEpisodePrompt()
+    else if row.id = "nextEpisodeMode"
+        settingsScreenToggleNextEpisodeMode()
     else if row.id = "serverLocation" or row.id = "streamingType"
         settingsScreenOpenFilterPicker(row.id)
     else if row.id = "signOut"
@@ -386,9 +386,13 @@ sub settingsScreenToggleHideAnime()
     settingsScreenRenderRows()
 end sub
 
-sub settingsScreenToggleNextEpisodePrompt()
-    m.nextEpisodePromptEnabled = m.nextEpisodePromptEnabled <> true
-    m.appSettingsStore.saveNextEpisodePromptEnabled(m.nextEpisodePromptEnabled)
+sub settingsScreenToggleNextEpisodeMode()
+    if m.nextEpisodeMode = "earlyPrompt"
+        m.nextEpisodeMode = "afterEnd"
+    else
+        m.nextEpisodeMode = "earlyPrompt"
+    end if
+    m.appSettingsStore.saveNextEpisodeMode(m.nextEpisodeMode)
     m.settingsRows = settingsScreenBuildRows()
     settingsScreenRenderRows()
 end sub

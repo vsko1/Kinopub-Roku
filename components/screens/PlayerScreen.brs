@@ -53,7 +53,7 @@ sub init()
     m.preferences = {}
     m.preferenceStore = PlayerPreferenceStore()
     m.appSettingsStore = AppSettingsStore()
-    m.nextEpisodePromptEnabled = m.appSettingsStore.loadNextEpisodePromptEnabled()
+    m.nextEpisodeMode = m.appSettingsStore.loadNextEpisodeMode()
     m.controls = []
     m.controlNodes = []
     ' Icon row baseline: controlsHost/focusCursor both start at x=900 (see
@@ -151,7 +151,7 @@ sub onPlaybackChanged(event as Object)
     end if
 
     resetNextEpisodeState()
-    m.nextEpisodePromptEnabled = m.appSettingsStore.loadNextEpisodePromptEnabled()
+    m.nextEpisodeMode = m.appSettingsStore.loadNextEpisodeMode()
     m.pendingResumeSeekPosition = 0
     m.preferences = m.preferenceStore.load(m.playback)
     m.titleLabel.text = playbackTitle()
@@ -204,6 +204,9 @@ sub onNextPlaybackChanged(event as Object)
     end if
 
     if response.reason = "seasonCarousel" or response.reason = "manualNext"
+        startNextPlayback(response.playback)
+    else if response.reason = "finished" and m.nextEpisodeMode = "afterEnd"
+        markCompletedIfSafe()
         startNextPlayback(response.playback)
     else
         showNextEpisodePrompt(response.playback)
@@ -677,7 +680,7 @@ end function
 
 sub maybeRequestNextEpisodePrompt(reason as String)
     if m.playback = invalid then return
-    if m.nextEpisodePromptEnabled <> true then return
+    if reason = "threshold" and m.nextEpisodeMode <> "earlyPrompt" then return
     if m.nextEpisodeRequested = true or m.nextEpisodeRequestPending = true or m.nextEpisodePromptOpen = true then return
     if canAskForNextEpisode() <> true then return
 
